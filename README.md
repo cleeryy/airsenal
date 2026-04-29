@@ -20,6 +20,7 @@ curl cheat.example.com/docker
 
 - Plain-text output optimised for `curl` and terminal use
 - JSON output via `?format=json` or `Accept: application/json`
+- **Template variable substitution** — pass `?key=value` query params to fill `<key>` placeholders inline; substituted values are highlighted in bold
 - Content-driven: add a `.md` or `.txt` file to the `cheats/` directory to publish a new cheatsheet
 - Optional YAML frontmatter for metadata (description, tags)
 - MCP stdio server for AI assistant integration (`AIRSENAL_ENABLE_MCP=true`)
@@ -71,9 +72,37 @@ curl "http://localhost:8080/nmap?raw=1"
 curl "http://localhost:8080/nmap?format=json"
 curl -H "Accept: application/json" http://localhost:8080/
 
+# Fill in template variables (substituted values appear in bold)
+curl "http://localhost:8080/nmap?target=10.10.10.10"
+curl "http://localhost:8080/nmap?target=10.10.10.10&port=443"
+
 # Health check
 curl http://localhost:8080/healthz
 ```
+
+---
+
+## Template variables
+
+Cheatsheet files use `<variable>` placeholders in command examples (e.g. `<target>`, `<port>`, `<domain>`). Pass these as query parameters to get a pre-filled, ready-to-run copy of the cheatsheet:
+
+```bash
+curl "http://localhost:8080/nmap?target=10.10.10.10"
+curl "http://localhost:8080/nmap?target=10.10.10.10&port=443"
+```
+
+**How it works:**
+
+- Each `?key=value` pair replaces every occurrence of `<key>` in the output.
+- Substituted values are **bold** in terminal output so they stand out at a glance.
+- Variables that are not provided are left as-is (e.g. `<port>` stays if `port` is not given).
+- A hint line at the bottom of every plain-text response lists all variables available in that cheatsheet:
+  ```
+  Variables: <port>  <target>
+  ```
+- `?raw=1` combined with variables still performs substitution but without bold decoration.
+- `?format=json` returns the unmodified cheatsheet struct — no substitution is applied.
+- The reserved params `raw` and `format` are never treated as variable names.
 
 ---
 
@@ -116,6 +145,8 @@ tags: [network, recon]
     mytool scan <target>
     mytool scan --verbose <target>
 ```
+
+Use `<variable>` placeholders in your commands (e.g. `<target>`, `<port>`) — they will be detected automatically and users can substitute them via query parameters (see [Template variables](#template-variables)).
 
 Restart the server (or remount the volume) to pick up new files.
 
