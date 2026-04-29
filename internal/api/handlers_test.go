@@ -264,7 +264,7 @@ func TestGetTopic_nonTerminalNoANSI(t *testing.T) {
 	}
 }
 
-func TestSearch_found(t *testing.T) {
+func TestSearch_tagMatch(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/~search?q=network", nil)
 	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
@@ -275,6 +275,9 @@ func TestSearch_found(t *testing.T) {
 	body := rec.Body.String()
 	if !strings.Contains(body, "nmap") {
 		t.Fatalf("expected nmap in results, got: %s", body)
+	}
+	if !strings.Contains(body, "[tags:") {
+		t.Fatalf("expected [tags: ...] annotation for tag match, got: %s", body)
 	}
 }
 
@@ -289,6 +292,20 @@ func TestSearch_topicMatch(t *testing.T) {
 	body := rec.Body.String()
 	if !strings.Contains(body, "nmap") {
 		t.Fatalf("expected nmap in results, got: %s", body)
+	}
+	// topic matches carry no annotation — self-evident from the topic name
+	if strings.Contains(body, "[tags:") || strings.Contains(body, "match]") {
+		t.Fatalf("topic match should have no annotation, got: %s", body)
+	}
+}
+
+func TestSearch_usageFooter(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~search?q=nmap", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if !strings.Contains(rec.Body.String(), "Usage:") {
+		t.Fatalf("expected Usage footer in plain-text output, got: %s", rec.Body.String())
 	}
 }
 
@@ -333,6 +350,9 @@ func TestSearch_JSON(t *testing.T) {
 	}
 	if results[0]["topic"] != "nmap" {
 		t.Fatalf("topic: got %v", results[0]["topic"])
+	}
+	if results[0]["match_reason"] != "topic" {
+		t.Fatalf("match_reason: got %v, want \"topic\"", results[0]["match_reason"])
 	}
 }
 
