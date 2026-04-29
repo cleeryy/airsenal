@@ -9,9 +9,11 @@ import (
 	"github.com/cleeryy/airsenal/internal/api"
 	"github.com/cleeryy/airsenal/internal/cheats"
 	"github.com/cleeryy/airsenal/internal/config"
+	"github.com/cleeryy/airsenal/internal/mcp"
 )
 
 func main() {
+	// Always log to stderr so stdout is available for MCP stdio transport.
 	log.SetOutput(os.Stderr)
 	log.SetFlags(log.Ltime | log.Lshortfile)
 
@@ -22,11 +24,24 @@ func main() {
 		log.Printf("warning: %v", err)
 	}
 
-	router := api.NewRouter(store)
-	addr := fmt.Sprintf(":%s", cfg.Port)
-	log.Printf("airsenal listening on %s (cheats dir: %s)", addr, cfg.CheatsDir)
+	if cfg.EnableMCP {
+		// Start HTTP server in background so both interfaces are available.
+		go serveHTTP(cfg.Port, store)
+		log.Printf("MCP stdio server ready")
+		mcpSrv := mcp.NewServer(store)
+		if err := mcpSrv.RunStdio(); err != nil {
+			log.Fatalf("MCP server error: %v", err)
+		}
+		return
+	}
 
-	if err := http.ListenAndServe(addr, router); err != nil {
-		log.Fatalf("server error: %v", err)
+	serveHTTP(cfg.Port, store)
+}
+
+func serveHTTP(port string, store *cheats.Store) {
+	addr := fmt.Sprintf(":%s", port)
+	log.Printf("airsenal HTTP server listening on %s", addr)
+	if err := http.ListenAndServe(addr, api.NewRouter(store)); err != nil {
+		log.Fatalf("HTTP server error: %v", err)
 	}
 }
