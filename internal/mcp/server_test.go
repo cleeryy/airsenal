@@ -99,6 +99,39 @@ func TestMCP_getCheatsheet(t *testing.T) {
 	}
 }
 
+func TestMCP_searchCheatsheets(t *testing.T) {
+	responses := runMessages(t,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"search_cheatsheets","arguments":{"query":"network"}}}`,
+	)
+	if len(responses) != 1 {
+		t.Fatalf("expected 1 response")
+	}
+	result := responses[0]["result"].(map[string]interface{})
+	content := result["content"].([]interface{})
+	text := content[0].(map[string]interface{})["text"].(string)
+	if !strings.Contains(text, "nmap") {
+		t.Fatalf("expected nmap in search response, got: %s", text)
+	}
+	if !strings.Contains(text, "[tag]") {
+		t.Fatalf("expected [tag] match reason in response, got: %s", text)
+	}
+}
+
+func TestMCP_searchCheatsheets_noResults(t *testing.T) {
+	responses := runMessages(t,
+		`{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"search_cheatsheets","arguments":{"query":"zzznomatch"}}}`,
+	)
+	if len(responses) != 1 {
+		t.Fatalf("expected 1 response")
+	}
+	result := responses[0]["result"].(map[string]interface{})
+	content := result["content"].([]interface{})
+	text := content[0].(map[string]interface{})["text"].(string)
+	if !strings.Contains(text, "No cheatsheets matched") {
+		t.Fatalf("expected no-match message, got: %s", text)
+	}
+}
+
 func TestMCP_unknownMethod(t *testing.T) {
 	responses := runMessages(t, `{"jsonrpc":"2.0","id":99,"method":"nonexistent"}`)
 	if len(responses) != 1 {
