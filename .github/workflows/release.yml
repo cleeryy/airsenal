@@ -1,0 +1,97 @@
+name: Release — Cross-platform Binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Build and release binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            suffix: linux-amd64
+            archive: tar.gz
+          - goos: linux
+            goarch: arm64
+            suffix: linux-arm64
+            archive: tar.gz
+          - goos: darwin
+            goarch: amd64
+            suffix: darwin-amd64
+            archive: tar.gz
+          - goos: darwin
+            goarch: arm64
+            suffix: darwin-arm64
+            archive: tar.gz
+          - goos: windows
+            goarch: amd64
+            suffix: windows-amd64
+            archive: zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          BIN=airsenal
+          if [ "${{ matrix.goos }}" = "windows" ]; then BIN=airsenal.exe; fi
+          go build -trimpath -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
+            -o dist/$BIN ./cmd/airsenal
+
+      - name: Package artifact (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          cd dist
+          tar -czf airsenal-${{ matrix.suffix }}.tar.gz airsenal
+          rm airsenal
+
+      - name: Package artifact (zip)
+        if: matrix.archive == 'zip'
+        run: |
+          cd dist
+          zip airsenal-${{ matrix.suffix }}.zip airsenal.exe
+          rm airsenal.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: airsenal-${{ matrix.suffix }}
+          path: dist/airsenal-${{ matrix.suffix }}.*
+
+  publish:
+    name: Create GitHub Release
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
