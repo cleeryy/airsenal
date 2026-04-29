@@ -1,0 +1,9 @@
+.git
+.github
+bin/
+*.test
+*.out
+coverage.*
+README.md
+docker-compose.yml
+.dockerignore
