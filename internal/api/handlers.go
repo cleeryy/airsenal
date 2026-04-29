@@ -114,12 +114,29 @@ func (h *handler) search(w http.ResponseWriter, r *http.Request) {
 		noun = "match"
 	}
 	fmt.Fprintf(w, "Search results for %q (%d %s):\n\n", q, len(results), noun)
-	for _, cs := range results {
-		if cs.Description != "" {
-			fmt.Fprintf(w, "  %-16s %s\n", cs.Topic, cs.Description)
+	for _, sr := range results {
+		ann := searchAnnotation(sr)
+		if ann != "" {
+			fmt.Fprintf(w, "%s %s %s\n", sr.Topic, sr.Description, ann)
 		} else {
-			fmt.Fprintf(w, "  %s\n", cs.Topic)
+			fmt.Fprintf(w, "%s %s\n", sr.Topic, sr.Description)
 		}
+	}
+	fmt.Fprintf(w, "\nUsage: curl cheat.example.com/<topic>\n")
+}
+
+// searchAnnotation returns the bracketed suffix shown after a result line in plain-text output.
+// Topic matches are self-evident; other match reasons are annotated for context.
+func searchAnnotation(sr cheats.SearchResult) string {
+	switch sr.MatchReason {
+	case "tag":
+		return "[tags: " + strings.Join(sr.Tags, ", ") + "]"
+	case "description":
+		return "[description match]"
+	case "content":
+		return "[content match]"
+	default:
+		return ""
 	}
 }
 

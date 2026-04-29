@@ -119,17 +119,16 @@ func (t *tools) searchCheatsheets(rawArgs json.RawMessage) toolResult {
 	if q == "" {
 		return errResult("query is required")
 	}
-	results := t.store.Search(q)
+	results := t.store.SearchRanked(q, 20)
 	if len(results) == 0 {
 		return textResult(fmt.Sprintf("No cheatsheets matched %q.", q))
 	}
-	sort.Slice(results, func(i, j int) bool { return results[i].Topic < results[j].Topic })
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "Search results for %q (%d match(es)):\n\n", q, len(results))
-	for _, cs := range results {
-		fmt.Fprintf(&sb, "  %-16s %s\n", cs.Topic, cs.Description)
-		if len(cs.Tags) > 0 {
-			fmt.Fprintf(&sb, "  %16s tags: %s\n", "", strings.Join(cs.Tags, ", "))
+	for _, r := range results {
+		fmt.Fprintf(&sb, "  %-16s %s [%s]\n", r.Topic, r.Description, r.MatchReason)
+		if r.MatchReason == "tag" && len(r.Tags) > 0 {
+			fmt.Fprintf(&sb, "  %16s tags: %s\n", "", strings.Join(r.Tags, ", "))
 		}
 	}
 	return textResult(sb.String())
