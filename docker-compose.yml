@@ -1,0 +1,15 @@
+services:
+  airsenal:
+    build: .
+    image: ghcr.io/cleeryy/airsenal:latest
+    ports:
+      - "8080:8080"
+    environment:
+      AIRSENAL_PORT: "8080"
+      AIRSENAL_CHEATS_DIR: "/cheats"
+      AIRSENAL_ENABLE_MCP: "false"
+    volumes:
+      # Mount a local cheats directory to serve custom cheatsheets.
+      # Remove this line to use the cheatsheets bundled in the image.
+      - ./cheats:/cheats:ro
+    restart: unless-stopped
