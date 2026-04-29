@@ -22,11 +22,17 @@ func Parse(topic, raw string) *Cheatsheet {
 			}
 		}
 		cs.Content = body
+		if cs.Tags == nil {
+			cs.Tags = []string{}
+		}
 		return cs
 	}
 
 	cs.Content = raw
 	cs.Description = extractDescription(raw)
+	if cs.Tags == nil {
+		cs.Tags = []string{}
+	}
 	return cs
 }
 
