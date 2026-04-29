@@ -227,3 +227,51 @@ func TestGetTopic_JSON(t *testing.T) {
 		t.Fatalf("topic: got %v", cs["topic"])
 	}
 }
+
+func TestGetTopic_terminalANSI(t *testing.T) {
+	for _, ua := range []string{
+		"curl/8.1.2",
+		"Wget/1.21.3",
+		"HTTPie/3.2.2",
+		"Go-http-client/1.1",
+	} {
+		t.Run(ua, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/nmap", nil)
+			req.Header.Set("User-Agent", ua)
+			NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status: got %d", rec.Code)
+			}
+			body := rec.Body.String()
+			if !strings.Contains(body, "\x1b[") {
+				t.Fatalf("terminal client %q should receive ANSI codes, got: %q", ua, body)
+			}
+		})
+	}
+}
+
+func TestGetTopic_nonTerminalNoANSI(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/nmap", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if strings.Contains(body, "\x1b[33m") {
+		t.Fatalf("browser UA must not receive ANSI section-header codes: %q", body)
+	}
+}
+
+func TestGetTopic_rawSkipsANSI(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/nmap?raw=1", nil)
+	req.Header.Set("User-Agent", "curl/8.1.2")
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if strings.Contains(body, "\x1b[33m") {
+		t.Fatalf("raw=1 must bypass ANSI rendering even for curl: %q", body)
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cleeryy/airsenal/internal/cheats"
+	"github.com/cleeryy/airsenal/internal/render"
 )
 
 type handler struct {
@@ -76,19 +77,16 @@ func (h *handler) getTopic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	content := cs.Content
-	if len(vars) > 0 {
-		content = cheats.Substitute(content, vars, true)
-	}
-	fmt.Fprint(w, content)
+	fmt.Fprint(w, render.Render(cs, vars, isTerminalClient(r)))
+}
 
-	if available := cheats.ExtractVariables(cs.Content); len(available) > 0 {
-		display := make([]string, len(available))
-		for i, v := range available {
-			display[i] = "<" + v + ">"
-		}
-		fmt.Fprintf(w, "\nVariables: %s\n", strings.Join(display, "  "))
-	}
+// isTerminalClient reports whether the request comes from a terminal-oriented HTTP client.
+func isTerminalClient(r *http.Request) bool {
+	ua := strings.ToLower(r.Header.Get("User-Agent"))
+	return strings.Contains(ua, "curl") ||
+		strings.Contains(ua, "wget") ||
+		strings.Contains(ua, "httpie") ||
+		strings.Contains(ua, "go-http-client")
 }
 
 // templateVars extracts non-reserved query parameters for placeholder substitution.

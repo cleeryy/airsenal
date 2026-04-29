@@ -18,9 +18,10 @@ curl cheat.example.com/docker
 
 ## Features
 
-- Plain-text output optimised for `curl` and terminal use
+- **Rich ANSI output** for terminal clients (`curl`, `wget`, HTTPie, Go) — bold-cyan titles, bold-yellow section headers, bold-white commands, dim inline comments, colored variable placeholders
+- Plain-text fallback for browsers and API clients
 - JSON output via `?format=json` or `Accept: application/json`
-- **Template variable substitution** — pass `?key=value` query params to fill `<key>` placeholders inline; substituted values are highlighted in bold
+- **Template variable substitution** — pass `?key=value` query params to fill `<key>` placeholders inline; unsubstituted placeholders are bold-green, substituted values are bold-magenta
 - Content-driven: add a `.md` or `.txt` file to the `cheats/` directory to publish a new cheatsheet
 - Optional YAML frontmatter for metadata (description, tags)
 - MCP stdio server for AI assistant integration (`AIRSENAL_ENABLE_MCP=true`)
@@ -60,25 +61,45 @@ docker compose up -d
 # List all available topics
 curl http://localhost:8080/
 
-# Get a cheatsheet
+# Get a cheatsheet (ANSI-formatted automatically for curl)
 curl http://localhost:8080/nmap
 curl http://localhost:8080/ssh
 curl http://localhost:8080/docker
 
-# Get raw file content (includes frontmatter)
+# Get raw file content — no ANSI, includes frontmatter
 curl "http://localhost:8080/nmap?raw=1"
 
 # Get structured JSON
 curl "http://localhost:8080/nmap?format=json"
 curl -H "Accept: application/json" http://localhost:8080/
 
-# Fill in template variables (substituted values appear in bold)
+# Fill in template variables (bold-magenta in ANSI output)
 curl "http://localhost:8080/nmap?target=10.10.10.10"
 curl "http://localhost:8080/nmap?target=10.10.10.10&port=443"
 
 # Health check
 curl http://localhost:8080/healthz
 ```
+
+---
+
+## Terminal formatting
+
+When the request comes from a terminal-oriented client (`curl`, `wget`, HTTPie, or the Go HTTP client), airsenal automatically applies ANSI formatting — no flag required:
+
+| Element | Style |
+|---|---|
+| Topic title (`# heading`) | Bold cyan + `━━━━` separator |
+| Section header (`## heading`) | Bold yellow |
+| Command lines (4-space or tab indent, code fences) | Bold white |
+| Inline comments (` # comment` after a command) | Dim gray |
+| Unsubstituted placeholder `<target>` | Bold green |
+| Substituted value | Bold magenta |
+| Variables footer | Dim |
+
+Markdown syntax (`##`, `---`, backticks) is stripped and replaced with its ANSI equivalent — the raw source is never shown.
+
+Pass `?raw=1` to skip all formatting and get the original file content including frontmatter.
 
 ---
 
@@ -94,13 +115,14 @@ curl "http://localhost:8080/nmap?target=10.10.10.10&port=443"
 **How it works:**
 
 - Each `?key=value` pair replaces every occurrence of `<key>` in the output.
-- Substituted values are **bold** in terminal output so they stand out at a glance.
+- In ANSI mode (terminal clients), substituted values are **bold magenta**; unsubstituted placeholders are **bold green**.
+- In plain-text mode (browsers, API clients), substituted values are wrapped in ANSI bold only.
 - Variables that are not provided are left as-is (e.g. `<port>` stays if `port` is not given).
 - A hint line at the bottom of every plain-text response lists all variables available in that cheatsheet:
   ```
   Variables: <port>  <target>
   ```
-- `?raw=1` combined with variables still performs substitution but without bold decoration.
+- `?raw=1` combined with variables still performs substitution but without any decoration.
 - `?format=json` returns the unmodified cheatsheet struct — no substitution is applied.
 - The reserved params `raw` and `format` are never treated as variable names.
 
@@ -224,7 +246,8 @@ airsenal/
 │   ├── api/              # HTTP handlers and router
 │   ├── cheats/           # cheatsheet model, parser, and store
 │   ├── config/           # environment-based configuration
-│   └── mcp/              # MCP stdio server
+│   ├── mcp/              # MCP stdio server
+│   └── render/           # ANSI terminal renderer
 ├── cheats/               # bundled cheatsheet content
 └── .github/workflows/    # CI/CD pipelines
 ```
