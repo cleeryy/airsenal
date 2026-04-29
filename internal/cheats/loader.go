@@ -85,49 +85,57 @@ func (s *Store) Search(query string) []*Cheatsheet {
 	return results
 }
 
+// SearchResult pairs a Cheatsheet with the reason it matched a query.
+// MatchReason is one of: "topic", "tag", "description", "content".
+type SearchResult struct {
+	*Cheatsheet
+	MatchReason string `json:"match_reason"`
+}
+
 // SearchRanked returns up to limit cheatsheets matching query, ranked by
 // specificity: topic name match > tag match > description match > content match.
 // Within each rank, results are sorted alphabetically by topic.
-func (s *Store) SearchRanked(query string, limit int) []*Cheatsheet {
+func (s *Store) SearchRanked(query string, limit int) []SearchResult {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	q := strings.ToLower(query)
 
-	type scored struct {
-		cs    *Cheatsheet
-		score int
+	type candidate struct {
+		cs     *Cheatsheet
+		score  int
+		reason string
 	}
-	var results []scored
+	var candidates []candidate
 	for _, cs := range s.data {
 		switch {
 		case strings.Contains(strings.ToLower(cs.Topic), q):
-			results = append(results, scored{cs, 1})
+			candidates = append(candidates, candidate{cs, 1, "topic"})
 		case tagsContain(cs.Tags, q):
-			results = append(results, scored{cs, 2})
+			candidates = append(candidates, candidate{cs, 2, "tag"})
 		case strings.Contains(strings.ToLower(cs.Description), q):
-			results = append(results, scored{cs, 3})
+			candidates = append(candidates, candidate{cs, 3, "description"})
 		case strings.Contains(strings.ToLower(contentPreview(cs.Content, 512)), q):
-			results = append(results, scored{cs, 4})
+			candidates = append(candidates, candidate{cs, 4, "content"})
 		}
 	}
 
-	sort.Slice(results, func(i, j int) bool {
-		if results[i].score != results[j].score {
-			return results[i].score < results[j].score
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].score != candidates[j].score {
+			return candidates[i].score < candidates[j].score
 		}
-		return results[i].cs.Topic < results[j].cs.Topic
+		return candidates[i].cs.Topic < candidates[j].cs.Topic
 	})
 
-	size := len(results)
+	size := len(candidates)
 	if size > limit {
 		size = limit
 	}
-	out := make([]*Cheatsheet, 0, size)
-	for i, r := range results {
+	out := make([]SearchResult, 0, size)
+	for i, c := range candidates {
 		if i >= limit {
 			break
 		}
-		out = append(out, r.cs)
+		out = append(out, SearchResult{Cheatsheet: c.cs, MatchReason: c.reason})
 	}
 	return out
 }
