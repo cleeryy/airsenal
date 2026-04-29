@@ -111,6 +111,106 @@ func TestGetTopic_rawParam(t *testing.T) {
 	}
 }
 
+func TestGetTopic_substitution(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/nmap?target=10.10.10.10", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "10.10.10.10") {
+		t.Fatalf("substituted value missing: %s", body)
+	}
+	// Check only the content part (before the Variables: hint line)
+	contentPart, _, _ := strings.Cut(body, "\nVariables:")
+	if strings.Contains(contentPart, "<target>") {
+		t.Fatalf("placeholder should have been replaced in content: %s", contentPart)
+	}
+	// ANSI bold decoration present
+	if !strings.Contains(body, "\x1b[1m10.10.10.10\x1b[0m") {
+		t.Fatalf("expected ANSI bold wrapping in plain-text output: %q", body)
+	}
+}
+
+func TestGetTopic_substitutionRaw(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/nmap?raw=1&target=10.10.10.10", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "10.10.10.10") {
+		t.Fatalf("substituted value missing in raw output: %s", body)
+	}
+	// No ANSI in raw mode
+	if strings.Contains(body, "\x1b[") {
+		t.Fatalf("raw output should not contain ANSI codes: %q", body)
+	}
+}
+
+func TestGetTopic_unprovidedVarRemains(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/nmap", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "<target>") {
+		t.Fatalf("<target> should remain when no vars given: %s", body)
+	}
+}
+
+func TestGetTopic_helperLine(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/nmap", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "Variables:") {
+		t.Fatalf("expected variables hint line: %s", body)
+	}
+	if !strings.Contains(body, "<target>") {
+		t.Fatalf("expected <target> in hint line: %s", body)
+	}
+}
+
+func TestGetTopic_helperLineNotInJSON(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/nmap?format=json", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if strings.Contains(body, "Variables:") {
+		t.Fatalf("variables hint should not appear in JSON output: %s", body)
+	}
+}
+
+func TestGetTopic_helperLineNotInRaw(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/nmap?raw=1", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if strings.Contains(body, "Variables:") {
+		t.Fatalf("variables hint should not appear in raw output: %s", body)
+	}
+}
+
+func TestGetTopic_reservedParamsNotSubstituted(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/nmap?format=json&raw=1", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	// format=json wins; body must be valid JSON and not treat "format"/"raw" as vars
+	var cs map[string]interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &cs); err != nil {
+		t.Fatalf("JSON decode: %v — body: %s", err, rec.Body.String())
+	}
+}
+
 func TestGetTopic_JSON(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/nmap?format=json", nil)
