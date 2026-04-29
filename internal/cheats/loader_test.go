@@ -49,25 +49,6 @@ func TestStore_List(t *testing.T) {
 	}
 }
 
-func TestStore_Search(t *testing.T) {
-	dir := t.TempDir()
-	writeFile(t, dir, "nmap.md", "---\ndescription: Port scanner\ntags: [network, recon]\n---\nnmap usage here")
-	writeFile(t, dir, "curl.md", "---\ndescription: HTTP client\ntags: [http]\n---\ncurl usage here")
-
-	s := NewStore(dir)
-	_ = s.Load()
-
-	results := s.Search("network")
-	if len(results) != 1 || results[0].Topic != "nmap" {
-		t.Fatalf("search 'network': got %v", topics(results))
-	}
-
-	results = s.Search("usage")
-	if len(results) != 2 {
-		t.Fatalf("search 'usage': expected 2, got %d", len(results))
-	}
-}
-
 func TestStore_SearchRanked_ranking(t *testing.T) {
 	dir := t.TempDir()
 	// "scan" appears in: nmap topic, nmap tags, curl description, ssh content

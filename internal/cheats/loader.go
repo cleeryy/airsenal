@@ -67,24 +67,6 @@ func (s *Store) List() []*Cheatsheet {
 	return list
 }
 
-// Search returns cheatsheets whose topic, description, tags, or content preview
-// contain the given query (case-insensitive substring match).
-func (s *Store) Search(query string) []*Cheatsheet {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	q := strings.ToLower(query)
-	var results []*Cheatsheet
-	for _, cs := range s.data {
-		if strings.Contains(strings.ToLower(cs.Topic), q) ||
-			strings.Contains(strings.ToLower(cs.Description), q) ||
-			tagsContain(cs.Tags, q) ||
-			strings.Contains(strings.ToLower(contentPreview(cs.Content, 512)), q) {
-			results = append(results, cs)
-		}
-	}
-	return results
-}
-
 // SearchResult pairs a Cheatsheet with the reason it matched a query.
 // MatchReason is one of: "topic", "tag", "description", "content".
 type SearchResult struct {
