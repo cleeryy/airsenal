@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -23,7 +24,9 @@ func newHandler(store *cheats.Store) *handler {
 // health handles GET /healthz
 func (h *handler) health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		log.Printf("json encode error: %v", err)
+	}
 }
 
 // list handles GET /
@@ -33,7 +36,9 @@ func (h *handler) list(w http.ResponseWriter, r *http.Request) {
 
 	if wantsJSON(r) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(all)
+		if err := json.NewEncoder(w).Encode(all); err != nil {
+			log.Printf("json encode error: %v", err)
+		}
 		return
 	}
 
@@ -61,7 +66,9 @@ func (h *handler) getTopic(w http.ResponseWriter, r *http.Request) {
 
 	if wantsJSON(r) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(cs)
+		if err := json.NewEncoder(w).Encode(cs); err != nil {
+			log.Printf("json encode error: %v", err)
+		}
 		return
 	}
 
@@ -100,7 +107,9 @@ func (h *handler) search(w http.ResponseWriter, r *http.Request) {
 
 	if wantsJSON(r) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(results)
+		if err := json.NewEncoder(w).Encode(results); err != nil {
+			log.Printf("json encode error: %v", err)
+		}
 		return
 	}
 
