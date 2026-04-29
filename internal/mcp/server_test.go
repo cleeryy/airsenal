@@ -27,7 +27,7 @@ func newTestStore(t *testing.T) *cheats.Store {
 
 func runMessages(t *testing.T, msgs ...string) []map[string]interface{} {
 	t.Helper()
-	srv := NewServer(newTestStore(t))
+	srv := NewServer(newTestStore(t), "test-version")
 	input := strings.Join(msgs, "\n") + "\n"
 	var out bytes.Buffer
 	if err := srv.run(strings.NewReader(input), &out); err != nil {

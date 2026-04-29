@@ -12,6 +12,8 @@ import (
 	"github.com/cleeryy/airsenal/internal/mcp"
 )
 
+var version = "dev"
+
 func main() {
 	// Always log to stderr so stdout is available for MCP stdio transport.
 	log.SetOutput(os.Stderr)
@@ -28,7 +30,7 @@ func main() {
 		// Start HTTP server in background so both interfaces are available.
 		go serveHTTP(cfg.Port, store)
 		log.Printf("MCP stdio server ready")
-		mcpSrv := mcp.NewServer(store)
+		mcpSrv := mcp.NewServer(store, version)
 		if err := mcpSrv.RunStdio(); err != nil {
 			log.Fatalf("MCP server error: %v", err)
 		}
@@ -40,7 +42,7 @@ func main() {
 
 func serveHTTP(port string, store *cheats.Store) {
 	addr := fmt.Sprintf(":%s", port)
-	log.Printf("airsenal HTTP server listening on %s", addr)
+	log.Printf("airsenal %s HTTP server listening on %s", version, addr)
 	if err := http.ListenAndServe(addr, api.NewRouter(store)); err != nil {
 		log.Fatalf("HTTP server error: %v", err)
 	}

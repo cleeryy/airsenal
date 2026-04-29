@@ -47,3 +47,11 @@ func TestParse_malformedFrontmatter(t *testing.T) {
 		t.Fatalf("expected raw fallback when frontmatter is malformed")
 	}
 }
+
+func TestParse_noTagsInitializesSlice(t *testing.T) {
+	raw := "---\ndescription: no tags\n---\nbody"
+	cs := Parse("test", raw)
+	if cs.Tags == nil {
+		t.Fatalf("tags should be empty slice, not nil")
+	}
+}
