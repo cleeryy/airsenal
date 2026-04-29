@@ -164,16 +164,35 @@ Within each rank, results are sorted alphabetically by topic name.
 | `limit` | `20` | Maximum number of results to return |
 | `format` | plain text | Set to `json` for a JSON array response |
 
+**Match annotations** — plain-text results show why each item matched:
+
+| Match reason | Annotation |
+|---|---|
+| Topic name | *(none — self-evident)* |
+| Tag | `[tags: tag1, tag2]` |
+| Description | `[description match]` |
+| Content | `[content match]` |
+
 Plain-text response example:
 
 ```
-Search results for "sql" (2 matches):
+Search results for "sql" (3 matches):
 
-  sqlmap           Automated SQL injection detection and exploitation
-  mysql            MySQL client quick reference
+sqlmap SQL injection testing tool
+ldapsearch Query LDAP directories [content match]
+curl HTTP client [content match]
+
+Usage: curl cheat.example.com/<topic>
 ```
 
-JSON response is an array of cheatsheet objects (same schema as `GET /<topic>?format=json`).
+**JSON output** returns an array of objects. Each object has the same fields as `GET /<topic>?format=json`, plus a `match_reason` field indicating where the query matched:
+
+| `match_reason` value | Meaning |
+|---|---|
+| `"topic"` | Query matched the topic name |
+| `"tag"` | Query matched one of the tags |
+| `"description"` | Query matched the description |
+| `"content"` | Query matched the cheatsheet body |
 
 ---
 
