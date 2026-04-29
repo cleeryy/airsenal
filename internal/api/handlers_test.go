@@ -264,6 +264,105 @@ func TestGetTopic_nonTerminalNoANSI(t *testing.T) {
 	}
 }
 
+func TestSearch_found(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~search?q=network", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "nmap") {
+		t.Fatalf("expected nmap in results, got: %s", body)
+	}
+}
+
+func TestSearch_topicMatch(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~search?q=nmap", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "nmap") {
+		t.Fatalf("expected nmap in results, got: %s", body)
+	}
+}
+
+func TestSearch_noResults(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~search?q=zzznomatch", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "No results") {
+		t.Fatalf("expected 'No results', got: %s", body)
+	}
+}
+
+func TestSearch_missingQuery(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~search", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status: got %d, want 400", rec.Code)
+	}
+}
+
+func TestSearch_JSON(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~search?q=nmap&format=json", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200", rec.Code)
+	}
+	var results []map[string]interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &results); err != nil {
+		t.Fatalf("JSON decode: %v — body: %s", err, rec.Body.String())
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0]["topic"] != "nmap" {
+		t.Fatalf("topic: got %v", results[0]["topic"])
+	}
+}
+
+func TestSearch_JSONNoResults(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~search?q=zzznomatch&format=json", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200", rec.Code)
+	}
+	var results []map[string]interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &results); err != nil {
+		t.Fatalf("JSON decode: %v — body: %s", err, rec.Body.String())
+	}
+	if len(results) != 0 {
+		t.Fatalf("expected 0 results, got %d", len(results))
+	}
+}
+
+func TestSearch_limit(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~search?q=nmap&limit=1", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200", rec.Code)
+	}
+}
+
 func TestGetTopic_rawSkipsANSI(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/nmap?raw=1", nil)

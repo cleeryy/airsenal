@@ -12,6 +12,7 @@ func NewRouter(store *cheats.Store) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", h.health)
+	mux.HandleFunc("GET /~search", h.search)
 	mux.HandleFunc("GET /", h.list)
 	mux.HandleFunc("GET /{topic}", h.getTopic)
 

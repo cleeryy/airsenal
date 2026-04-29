@@ -22,6 +22,7 @@ curl cheat.example.com/docker
 - Plain-text fallback for browsers and API clients
 - JSON output via `?format=json` or `Accept: application/json`
 - **Template variable substitution** — pass `?key=value` query params to fill `<key>` placeholders inline; unsubstituted placeholders are bold-green, substituted values are bold-magenta
+- **Full-text search** via `GET /~search?q=<query>` — ranked across topic name, tags, description, and content
 - Content-driven: add a `.md` or `.txt` file to the `cheats/` directory to publish a new cheatsheet
 - Optional YAML frontmatter for metadata (description, tags)
 - MCP stdio server for AI assistant integration (`AIRSENAL_ENABLE_MCP=true`)
@@ -77,6 +78,11 @@ curl -H "Accept: application/json" http://localhost:8080/
 curl "http://localhost:8080/nmap?target=10.10.10.10"
 curl "http://localhost:8080/nmap?target=10.10.10.10&port=443"
 
+# Search across all cheatsheets
+curl "http://localhost:8080/~search?q=sql"
+curl "http://localhost:8080/~search?q=port+scan&format=json"
+curl "http://localhost:8080/~search?q=network&limit=5"
+
 # Health check
 curl http://localhost:8080/healthz
 ```
@@ -125,6 +131,49 @@ curl "http://localhost:8080/nmap?target=10.10.10.10&port=443"
 - `?raw=1` combined with variables still performs substitution but without any decoration.
 - `?format=json` returns the unmodified cheatsheet struct — no substitution is applied.
 - The reserved params `raw` and `format` are never treated as variable names.
+
+---
+
+## Search
+
+`GET /~search?q=<query>` finds cheatsheets by keyword across all topics. The `~` prefix marks meta-routes that can never conflict with topic names.
+
+```bash
+curl "http://localhost:8080/~search?q=sql"
+curl "http://localhost:8080/~search?q=port+scan"
+curl "http://localhost:8080/~search?q=network&format=json"
+curl "http://localhost:8080/~search?q=ssh&limit=5"
+```
+
+**Ranking** — results are ordered by where the match was found:
+
+| Priority | Match location |
+|----------|---------------|
+| 1 (highest) | Topic name |
+| 2 | Tags |
+| 3 | Description |
+| 4 | Content (first 512 chars) |
+
+Within each rank, results are sorted alphabetically by topic name.
+
+**Parameters:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `q` | *(required)* | Case-insensitive search query |
+| `limit` | `20` | Maximum number of results to return |
+| `format` | plain text | Set to `json` for a JSON array response |
+
+Plain-text response example:
+
+```
+Search results for "sql" (2 matches):
+
+  sqlmap           Automated SQL injection detection and exploitation
+  mysql            MySQL client quick reference
+```
+
+JSON response is an array of cheatsheet objects (same schema as `GET /<topic>?format=json`).
 
 ---
 

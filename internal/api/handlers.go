@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/cleeryy/airsenal/internal/cheats"
@@ -78,6 +79,48 @@ func (h *handler) getTopic(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	fmt.Fprint(w, render.Render(cs, vars, isTerminalClient(r)))
+}
+
+// search handles GET /~search?q=<query>[&limit=N][&format=json]
+func (h *handler) search(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	if q == "" {
+		http.Error(w, "missing required parameter: q\n", http.StatusBadRequest)
+		return
+	}
+
+	limit := 20
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 {
+			limit = n
+		}
+	}
+
+	results := h.store.SearchRanked(q, limit)
+
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(results)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	if len(results) == 0 {
+		fmt.Fprintf(w, "No results for %q\n", q)
+		return
+	}
+	noun := "matches"
+	if len(results) == 1 {
+		noun = "match"
+	}
+	fmt.Fprintf(w, "Search results for %q (%d %s):\n\n", q, len(results), noun)
+	for _, cs := range results {
+		if cs.Description != "" {
+			fmt.Fprintf(w, "  %-16s %s\n", cs.Topic, cs.Description)
+		} else {
+			fmt.Fprintf(w, "  %s\n", cs.Topic)
+		}
+	}
 }
 
 // isTerminalClient reports whether the request comes from a terminal-oriented HTTP client.

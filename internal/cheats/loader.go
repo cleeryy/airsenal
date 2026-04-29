@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -82,6 +83,53 @@ func (s *Store) Search(query string) []*Cheatsheet {
 		}
 	}
 	return results
+}
+
+// SearchRanked returns up to limit cheatsheets matching query, ranked by
+// specificity: topic name match > tag match > description match > content match.
+// Within each rank, results are sorted alphabetically by topic.
+func (s *Store) SearchRanked(query string, limit int) []*Cheatsheet {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	q := strings.ToLower(query)
+
+	type scored struct {
+		cs    *Cheatsheet
+		score int
+	}
+	var results []scored
+	for _, cs := range s.data {
+		switch {
+		case strings.Contains(strings.ToLower(cs.Topic), q):
+			results = append(results, scored{cs, 1})
+		case tagsContain(cs.Tags, q):
+			results = append(results, scored{cs, 2})
+		case strings.Contains(strings.ToLower(cs.Description), q):
+			results = append(results, scored{cs, 3})
+		case strings.Contains(strings.ToLower(contentPreview(cs.Content, 512)), q):
+			results = append(results, scored{cs, 4})
+		}
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].score != results[j].score {
+			return results[i].score < results[j].score
+		}
+		return results[i].cs.Topic < results[j].cs.Topic
+	})
+
+	size := len(results)
+	if size > limit {
+		size = limit
+	}
+	out := make([]*Cheatsheet, 0, size)
+	for i, r := range results {
+		if i >= limit {
+			break
+		}
+		out = append(out, r.cs)
+	}
+	return out
 }
 
 func tagsContain(tags []string, q string) bool {
