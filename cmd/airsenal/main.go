@@ -30,7 +30,7 @@ func main() {
 		// Start HTTP server in background so both interfaces are available.
 		go serveHTTP(cfg.Port, store)
 		log.Printf("MCP stdio server ready")
-		mcpSrv := mcp.NewServer(store)
+		mcpSrv := mcp.NewServer(store, version)
 		if err := mcpSrv.RunStdio(); err != nil {
 			log.Fatalf("MCP server error: %v", err)
 		}

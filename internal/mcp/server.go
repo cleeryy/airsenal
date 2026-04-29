@@ -15,12 +15,13 @@ const protocolVersion = "2024-11-05"
 
 // Server is an MCP server that communicates over stdio using JSON-RPC 2.0.
 type Server struct {
-	tools *tools
+	tools   *tools
+	version string
 }
 
 // NewServer creates a new MCP Server backed by the given cheatsheet store.
-func NewServer(store *cheats.Store) *Server {
-	return &Server{tools: newTools(store)}
+func NewServer(store *cheats.Store, version string) *Server {
+	return &Server{tools: newTools(store), version: version}
 }
 
 // RunStdio reads JSON-RPC messages from stdin and writes responses to stdout.
@@ -80,7 +81,7 @@ func (s *Server) dispatch(req request) *response {
 func (s *Server) handleInitialize(req request) *response {
 	result := initializeResult{
 		ProtocolVersion: protocolVersion,
-		ServerInfo:      serverInfo{Name: "airsenal", Version: "1.0.0"},
+		ServerInfo:      serverInfo{Name: "airsenal", Version: s.version},
 		Capabilities:    serverCapabilities{Tools: &toolsCapability{}},
 	}
 	return &response{JSONRPC: "2.0", ID: req.ID, Result: result}
