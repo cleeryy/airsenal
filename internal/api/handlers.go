@@ -63,14 +63,45 @@ func (h *handler) getTopic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	vars := templateVars(r)
+
 	if r.URL.Query().Get("raw") == "1" {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprint(w, cs.Raw)
+		content := cs.Raw
+		if len(vars) > 0 {
+			content = cheats.Substitute(content, vars, false)
+		}
+		fmt.Fprint(w, content)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprint(w, cs.Content)
+	content := cs.Content
+	if len(vars) > 0 {
+		content = cheats.Substitute(content, vars, true)
+	}
+	fmt.Fprint(w, content)
+
+	if available := cheats.ExtractVariables(cs.Content); len(available) > 0 {
+		display := make([]string, len(available))
+		for i, v := range available {
+			display[i] = "<" + v + ">"
+		}
+		fmt.Fprintf(w, "\nVariables: %s\n", strings.Join(display, "  "))
+	}
+}
+
+// templateVars extracts non-reserved query parameters for placeholder substitution.
+func templateVars(r *http.Request) map[string]string {
+	reserved := map[string]bool{"raw": true, "format": true}
+	vars := map[string]string{}
+	for k, vals := range r.URL.Query() {
+		if reserved[k] || len(vals) == 0 {
+			continue
+		}
+		vars[k] = vals[0]
+	}
+	return vars
 }
 
 // wantsJSON reports whether the client prefers a JSON response.
