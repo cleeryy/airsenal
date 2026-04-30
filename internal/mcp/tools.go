@@ -48,6 +48,22 @@ func (t *tools) definitions() []toolDef {
 				Required: []string{"query"},
 			},
 		},
+		{
+			Name:        "list_categories",
+			Description: "List all available cheatsheet categories with their cheat counts.",
+			InputSchema: inputSchema{Type: "object"},
+		},
+		{
+			Name:        "list_by_category",
+			Description: "List all cheatsheets within a specific category.",
+			InputSchema: inputSchema{
+				Type: "object",
+				Properties: map[string]property{
+					"category": {Type: "string", Description: "The category name to filter by"},
+				},
+				Required: []string{"category"},
+			},
+		},
 	}
 }
 
@@ -60,6 +76,10 @@ func (t *tools) call(name string, rawArgs json.RawMessage) toolResult {
 		return t.getCheatsheet(rawArgs)
 	case "search_cheatsheets":
 		return t.searchCheatsheets(rawArgs)
+	case "list_categories":
+		return t.listCategories()
+	case "list_by_category":
+		return t.listByCategory(rawArgs)
 	default:
 		return errResult(fmt.Sprintf("unknown tool: %s", name))
 	}
@@ -132,6 +152,37 @@ func (t *tools) searchCheatsheets(rawArgs json.RawMessage) toolResult {
 		}
 	}
 	return textResult(sb.String())
+}
+
+func (t *tools) listCategories() toolResult {
+	cats := t.store.ListCategories()
+	b, err := json.Marshal(cats)
+	if err != nil {
+		return errResult("failed to serialize categories: " + err.Error())
+	}
+	return textResult(string(b))
+}
+
+func (t *tools) listByCategory(rawArgs json.RawMessage) toolResult {
+	var args struct {
+		Category string `json:"category"`
+	}
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
+		return errResult("invalid arguments: " + err.Error())
+	}
+	cat := strings.TrimSpace(args.Category)
+	if cat == "" {
+		return errResult("category is required")
+	}
+	cheats := t.store.ListByCategory(cat)
+	if len(cheats) == 0 {
+		return errResult(fmt.Sprintf("no cheatsheets found for category %q", cat))
+	}
+	b, err := json.Marshal(cheats)
+	if err != nil {
+		return errResult("failed to serialize cheatsheets: " + err.Error())
+	}
+	return textResult(string(b))
 }
 
 func textResult(text string) toolResult {
