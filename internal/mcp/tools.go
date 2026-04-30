@@ -64,6 +64,17 @@ func (t *tools) definitions() []toolDef {
 				Required: []string{"category"},
 			},
 		},
+		{
+			Name:        "random_cheatsheet",
+			Description: "Return a random cheatsheet, optionally filtered by category or tag.",
+			InputSchema: inputSchema{
+				Type: "object",
+				Properties: map[string]property{
+					"category": {Type: "string", Description: "Filter by category name"},
+					"tag":      {Type: "string", Description: "Filter by tag name"},
+				},
+			},
+		},
 	}
 }
 
@@ -80,6 +91,8 @@ func (t *tools) call(name string, rawArgs json.RawMessage) toolResult {
 		return t.listCategories()
 	case "list_by_category":
 		return t.listByCategory(rawArgs)
+	case "random_cheatsheet":
+		return t.randomCheatsheet(rawArgs)
 	default:
 		return errResult(fmt.Sprintf("unknown tool: %s", name))
 	}
@@ -185,7 +198,48 @@ func (t *tools) listByCategory(rawArgs json.RawMessage) toolResult {
 	return textResult(string(b))
 }
 
+func (t *tools) randomCheatsheet(rawArgs json.RawMessage) toolResult {
+	var args struct {
+		Category string `json:"category"`
+		Tag      string `json:"tag"`
+	}
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
+		return errResult("invalid arguments: " + err.Error())
+	}
+
+	var cs *cheats.Cheatsheet
+	if args.Category != "" {
+		cs = t.store.RandomByCategory(args.Category)
+		if cs == nil {
+			return errResult(fmt.Sprintf("no random cheatsheet found in category %q", args.Category))
+		}
+	} else if args.Tag != "" {
+		cs = t.store.RandomByTag(args.Tag)
+		if cs == nil {
+			return errResult(fmt.Sprintf("no random cheatsheet found with tag %q", args.Tag))
+		}
+	} else {
+		cs = t.store.Random()
+		if cs == nil {
+			return errResult("no cheatsheets found in store")
+		}
+	}
+
+	b, err := json.Marshal(struct {
+		*cheats.Cheatsheet
+		Random bool `json:"random"`
+	}{
+		Cheatsheet: cs,
+		Random:     true,
+	})
+	if err != nil {
+		return errResult("failed to serialize cheatsheet: " + err.Error())
+	}
+	return textResult(string(b))
+}
+
 func textResult(text string) toolResult {
+
 	return toolResult{Content: []contentItem{{Type: "text", Text: text}}}
 }
 

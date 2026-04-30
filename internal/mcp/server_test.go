@@ -79,8 +79,31 @@ func TestMCP_toolsList(t *testing.T) {
 	}
 	result := responses[0]["result"].(map[string]interface{})
 	toolsRaw := result["tools"].([]interface{})
-	if len(toolsRaw) != 5 {
-		t.Fatalf("expected 5 tools, got %d", len(toolsRaw))
+	if len(toolsRaw) != 6 {
+		t.Fatalf("expected 6 tools, got %d", len(toolsRaw))
+	}
+}
+
+func TestMCP_randomCheatsheet(t *testing.T) {
+	responses := runMessages(t,
+		`{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"random_cheatsheet","arguments":{}}}`,
+	)
+	if len(responses) != 1 {
+		t.Fatalf("expected 1 response")
+	}
+	result := responses[0]["result"].(map[string]interface{})
+	content := result["content"].([]interface{})
+	text := content[0].(map[string]interface{})["text"].(string)
+
+	var cs map[string]interface{}
+	if err := json.Unmarshal([]byte(text), &cs); err != nil {
+		t.Fatalf("failed to decode random response: %v", err)
+	}
+	if cs["topic"] != "nmap" {
+		t.Fatalf("expected nmap topic, got %v", cs["topic"])
+	}
+	if cs["random"] != true {
+		t.Fatalf("expected random: true, got %v", cs["random"])
 	}
 }
 
