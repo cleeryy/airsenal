@@ -74,6 +74,12 @@ curl "http://localhost:8080/nmap?raw=1"
 curl "http://localhost:8080/nmap?format=json"
 curl -H "Accept: application/json" http://localhost:8080/
 
+# Browse by category or tag
+curl http://localhost:8080/~categories
+curl http://localhost:8080/~cat/web
+curl http://localhost:8080/~tags
+curl http://localhost:8080/~tag/linux
+
 # Fill in template variables (bold-magenta in ANSI output)
 curl "http://localhost:8080/nmap?target=10.10.10.10"
 curl "http://localhost:8080/nmap?target=10.10.10.10&port=443"
@@ -287,6 +293,8 @@ When `AIRSENAL_ENABLE_MCP=true`, the HTTP server starts in a background goroutin
 | `list_cheatsheets`    | List all available topics with descriptions                   |
 | `get_cheatsheet`      | Get content and metadata for a topic (`topic: string`)        |
 | `search_cheatsheets`  | Full-text search across topics, tags, and content (`query: string`) |
+| `list_categories`     | List all available categories with their cheat counts         |
+| `list_by_category`    | List all cheatsheets within a specific category (`category: string`) |
 
 ### Claude Desktop configuration
 
