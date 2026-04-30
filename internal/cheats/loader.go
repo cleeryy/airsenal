@@ -127,6 +127,50 @@ func (s *Store) List() []*Cheatsheet {
 	return list
 }
 
+// ListCategories returns all available categories with their cheat count, sorted alphabetically.
+func (s *Store) ListCategories() []CategorySummary {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	counts := make(map[string]int)
+	for _, cs := range s.data {
+		if cs.Category != "" {
+			counts[cs.Category]++
+		}
+	}
+
+	var list []CategorySummary
+	for cat, count := range counts {
+		list = append(list, CategorySummary{Category: cat, Count: count})
+	}
+
+	sort.Slice(list, func(i, j int) bool {
+		return strings.ToLower(list[i].Category) < strings.ToLower(list[j].Category)
+	})
+
+	return list
+}
+
+// ListByCategory returns all cheats in a given category (case-insensitive), sorted alphabetically.
+func (s *Store) ListByCategory(category string) []*Cheatsheet {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	catLower := strings.ToLower(category)
+	var list []*Cheatsheet
+	for _, cs := range s.data {
+		if strings.ToLower(cs.Category) == catLower {
+			list = append(list, cs)
+		}
+	}
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Topic < list[j].Topic
+	})
+
+	return list
+}
+
 // SearchResult pairs a Cheatsheet with the reason it matched a query.
 // MatchReason is one of: "topic", "tag", "description", "content".
 type SearchResult struct {

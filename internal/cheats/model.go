@@ -9,3 +9,13 @@ type Cheatsheet struct {
 	Content     string   `json:"content"`
 	Raw         string   `json:"raw,omitempty"`
 }
+
+type CategorySummary struct {
+	Category string `json:"category"`
+	Count    int    `json:"count"`
+}
+
+type TagSummary struct {
+	Tag   string `json:"tag"`
+	Count int    `json:"count"`
+}
