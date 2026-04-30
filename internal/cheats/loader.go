@@ -1,7 +1,9 @@
 package cheats
 
 import (
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
@@ -294,4 +296,70 @@ func contentPreview(s string, n int) string {
 		return s
 	}
 	return s[:n]
+}
+
+// Random returns a randomly selected cheatsheet from the store,
+// or nil if the store is empty.
+func (s *Store) Random() *Cheatsheet {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if len(s.data) == 0 {
+		return nil
+	}
+
+	keys := make([]string, 0, len(s.data))
+	for k := range s.data {
+		keys = append(keys, k)
+	}
+
+	n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(keys))))
+	return s.data[keys[n.Int64()]]
+}
+
+// RandomByCategory returns a randomly selected cheatsheet from the given category,
+// or nil if no cheatsheets match.
+func (s *Store) RandomByCategory(category string) *Cheatsheet {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	catLower := strings.ToLower(category)
+	var matches []*Cheatsheet
+	for _, cs := range s.data {
+		if strings.ToLower(cs.Category) == catLower {
+			matches = append(matches, cs)
+		}
+	}
+
+	if len(matches) == 0 {
+		return nil
+	}
+
+	n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(matches))))
+	return matches[n.Int64()]
+}
+
+// RandomByTag returns a randomly selected cheatsheet that has the given tag,
+// or nil if no cheatsheets match.
+func (s *Store) RandomByTag(tag string) *Cheatsheet {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	tagLower := strings.ToLower(tag)
+	var matches []*Cheatsheet
+	for _, cs := range s.data {
+		for _, t := range cs.Tags {
+			if strings.ToLower(t) == tagLower {
+				matches = append(matches, cs)
+				break
+			}
+		}
+	}
+
+	if len(matches) == 0 {
+		return nil
+	}
+
+	n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(matches))))
+	return matches[n.Int64()]
 }

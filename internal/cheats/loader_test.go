@@ -170,6 +170,44 @@ func TestStore_ListCategoriesAndTags(t *testing.T) {
 	}
 }
 
+func TestStore_Random(t *testing.T) {
+	dir := t.TempDir()
+
+	writeFile(t, dir, "a.md", "---\ncategory: Web\ntags: [http, web]\n---\n")
+	writeFile(t, dir, "b.md", "---\ncategory: Scan\ntags: [scan]\n---\n")
+
+	s := NewStore(dir)
+	_, _ = s.Load()
+
+	cs := s.Random()
+	if cs == nil {
+		t.Fatal("Random returned nil, expected a cheatsheet")
+	}
+	if cs.Topic != "a" && cs.Topic != "b" {
+		t.Fatalf("Random returned unexpected topic: %s", cs.Topic)
+	}
+
+	csCat := s.RandomByCategory("Web")
+	if csCat == nil || strings.ToLower(csCat.Topic) != "a" {
+		t.Fatalf("RandomByCategory returned unexpected topic: %v", csCat)
+	}
+
+	csCatNil := s.RandomByCategory("doesnotexist")
+	if csCatNil != nil {
+		t.Fatalf("RandomByCategory should return nil for unknown category")
+	}
+
+	csTag := s.RandomByTag("scan")
+	if csTag == nil || strings.ToLower(csTag.Topic) != "b" {
+		t.Fatalf("RandomByTag returned unexpected topic: %v", csTag)
+	}
+
+	csTagNil := s.RandomByTag("doesnotexist")
+	if csTagNil != nil {
+		t.Fatalf("RandomByTag should return nil for unknown tag")
+	}
+}
+
 func writeFile(t *testing.T, dir, name, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
