@@ -480,6 +480,84 @@ func TestSearch_limit(t *testing.T) {
 	}
 }
 
+func TestRandom(t *testing.T) {
+	s := newTestStore(t)
+	router := NewRouter(s)
+
+	t.Run("basic", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/~random", nil)
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status: got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		if !strings.Contains(body, "Random cheat: nmap") {
+			t.Fatalf("expected header, got: %s", body)
+		}
+		if !strings.Contains(body, "nmap <target>") {
+			t.Fatalf("expected content, got: %s", body)
+		}
+	})
+
+	t.Run("category found", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/~random?cat=Scan", nil)
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status: got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "nmap") {
+			t.Fatalf("expected nmap, got: %s", rec.Body.String())
+		}
+	})
+
+	t.Run("category not found", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/~random?cat=doesnotexist", nil)
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("status: got %d, want 404", rec.Code)
+		}
+	})
+
+	t.Run("tag found", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/~random?tag=network", nil)
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status: got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "nmap") {
+			t.Fatalf("expected nmap, got: %s", rec.Body.String())
+		}
+	})
+
+	t.Run("JSON", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/~random?format=json", nil)
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status: got %d", rec.Code)
+		}
+		var resp map[string]interface{}
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatal(err)
+		}
+		if resp["random"] != true {
+			t.Fatalf("expected random: true, got %v", resp["random"])
+		}
+		if resp["topic"] != "nmap" {
+			t.Fatalf("expected topic: nmap, got %v", resp["topic"])
+		}
+	})
+}
+
 func TestGetTopic_rawSkipsANSI(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/nmap?raw=1", nil)

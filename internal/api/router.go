@@ -17,6 +17,7 @@ func NewRouter(store *cheats.Store) http.Handler {
 	mux.HandleFunc("GET /~cat/{category}", h.listByCategory)
 	mux.HandleFunc("GET /~tags", h.listTags)
 	mux.HandleFunc("GET /~tag/{tag}", h.listByTag)
+	mux.HandleFunc("GET /~random", h.random)
 	mux.HandleFunc("GET /", h.list)
 	mux.HandleFunc("GET /{topic}", h.getTopic)
 

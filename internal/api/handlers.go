@@ -66,9 +66,7 @@ func (h *handler) getTopic(w http.ResponseWriter, r *http.Request) {
 
 	if wantsJSON(r) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(cs); err != nil {
-			log.Printf("json encode error: %v", err)
-		}
+		json.NewEncoder(w).Encode(cs)
 		return
 	}
 
@@ -86,6 +84,61 @@ func (h *handler) getTopic(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	fmt.Fprint(w, render.Render(cs, vars, isTerminalClient(r)))
+}
+
+func (h *handler) random(w http.ResponseWriter, r *http.Request) {
+	cat := r.URL.Query().Get("cat")
+	tag := r.URL.Query().Get("tag")
+
+	var cs *cheats.Cheatsheet
+	if cat != "" {
+		cs = h.store.RandomByCategory(cat)
+		if cs == nil {
+			http.Error(w, fmt.Sprintf("no random cheatsheet found in category %q\n", cat), http.StatusNotFound)
+			return
+		}
+	} else if tag != "" {
+		cs = h.store.RandomByTag(tag)
+		if cs == nil {
+			http.Error(w, fmt.Sprintf("no random cheatsheet found with tag %q\n", tag), http.StatusNotFound)
+			return
+		}
+	} else {
+		cs = h.store.Random()
+		if cs == nil {
+			http.Error(w, "no cheatsheets found in store\n", http.StatusNotFound)
+			return
+		}
+	}
+
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		type randomResponse struct {
+			*cheats.Cheatsheet
+			Random bool `json:"random"`
+		}
+		json.NewEncoder(w).Encode(randomResponse{Cheatsheet: cs, Random: true})
+		return
+	}
+
+	vars := templateVars(r)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+	terminal := isTerminalClient(r)
+	header := fmt.Sprintf("🎲 Random cheat: %s [%s]", cs.Topic, cs.Category)
+	if cs.Category == "" {
+		header = fmt.Sprintf("🎲 Random cheat: %s", cs.Topic)
+	}
+
+	if terminal {
+		sep := strings.Repeat("━", len([]rune(header)))
+		fmt.Fprintf(w, "\x1b[1;36m%s\n%s\x1b[0m\n", header, sep)
+	} else {
+		sep := strings.Repeat("=", len(header))
+		fmt.Fprintf(w, "%s\n%s\n\n", header, sep)
+	}
+
+	fmt.Fprint(w, render.Render(cs, vars, terminal))
 }
 
 // search handles GET /~search?q=<query>[&limit=N][&format=json]
