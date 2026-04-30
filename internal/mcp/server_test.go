@@ -79,8 +79,8 @@ func TestMCP_toolsList(t *testing.T) {
 	}
 	result := responses[0]["result"].(map[string]interface{})
 	toolsRaw := result["tools"].([]interface{})
-	if len(toolsRaw) != 3 {
-		t.Fatalf("expected 3 tools, got %d", len(toolsRaw))
+	if len(toolsRaw) != 5 {
+		t.Fatalf("expected 5 tools, got %d", len(toolsRaw))
 	}
 }
 
