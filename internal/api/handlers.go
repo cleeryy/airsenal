@@ -149,6 +149,114 @@ func searchAnnotation(sr cheats.SearchResult) string {
 	}
 }
 
+func (h *handler) listCategories(w http.ResponseWriter, r *http.Request) {
+	cats := h.store.ListCategories()
+
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(cats); err != nil {
+			log.Printf("json encode error: %v", err)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	title := fmt.Sprintf("Available categories (%d)", len(cats))
+	fmt.Fprintf(w, "%s\n", title)
+	fmt.Fprintf(w, "%s\n", strings.Repeat("─", len([]rune(title))))
+	for _, c := range cats {
+		fmt.Fprintf(w, "%-16s (%2d cheats)\n", c.Category, c.Count)
+	}
+	fmt.Fprintf(w, "\nUsage: curl cheat.example.com/~cat/<category>\n")
+}
+
+func (h *handler) listByCategory(w http.ResponseWriter, r *http.Request) {
+	cat := r.PathValue("category")
+	cheats := h.store.ListByCategory(cat)
+
+	if len(cheats) == 0 {
+		http.Error(w, fmt.Sprintf("Category not found: %q\n", cat), http.StatusNotFound)
+		return
+	}
+
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(cheats); err != nil {
+			log.Printf("json encode error: %v", err)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	displayCat := cheats[0].Category
+	if displayCat == "" {
+		displayCat = cat
+	}
+	title := fmt.Sprintf("Category: %s (%d cheats)", displayCat, len(cheats))
+	fmt.Fprintf(w, "%s\n", title)
+	fmt.Fprintf(w, "%s\n", strings.Repeat("─", len([]rune(title))))
+	for _, cs := range cheats {
+		if cs.Description != "" {
+			fmt.Fprintf(w, "%-16s %s\n", cs.Topic, cs.Description)
+		} else {
+			fmt.Fprintf(w, "%s\n", cs.Topic)
+		}
+	}
+	fmt.Fprintf(w, "\nUsage: curl cheat.example.com/<topic>\n")
+}
+
+func (h *handler) listTags(w http.ResponseWriter, r *http.Request) {
+	tags := h.store.ListTags()
+
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(tags); err != nil {
+			log.Printf("json encode error: %v", err)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	title := fmt.Sprintf("Available tags (%d)", len(tags))
+	fmt.Fprintf(w, "%s\n", title)
+	fmt.Fprintf(w, "%s\n", strings.Repeat("─", len([]rune(title))))
+	for _, t := range tags {
+		fmt.Fprintf(w, "%-16s (%2d)\n", t.Tag, t.Count)
+	}
+	fmt.Fprintf(w, "\nUsage: curl cheat.example.com/~tag/<tag>\n")
+}
+
+func (h *handler) listByTag(w http.ResponseWriter, r *http.Request) {
+	tag := r.PathValue("tag")
+	cheats := h.store.ListByTag(tag)
+
+	if len(cheats) == 0 {
+		http.Error(w, fmt.Sprintf("Tag not found: %q\n", tag), http.StatusNotFound)
+		return
+	}
+
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(cheats); err != nil {
+			log.Printf("json encode error: %v", err)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	title := fmt.Sprintf("Tag: %s (%d cheats)", tag, len(cheats))
+	fmt.Fprintf(w, "%s\n", title)
+	fmt.Fprintf(w, "%s\n", strings.Repeat("─", len([]rune(title))))
+	for _, cs := range cheats {
+		if cs.Description != "" {
+			fmt.Fprintf(w, "%-16s %s\n", cs.Topic, cs.Description)
+		} else {
+			fmt.Fprintf(w, "%s\n", cs.Topic)
+		}
+	}
+	fmt.Fprintf(w, "\nUsage: curl cheat.example.com/<topic>\n")
+}
+
 // isTerminalClient reports whether the request comes from a terminal-oriented HTTP client.
 func isTerminalClient(r *http.Request) bool {
 	ua := strings.ToLower(r.Header.Get("User-Agent"))

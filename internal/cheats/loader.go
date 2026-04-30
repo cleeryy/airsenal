@@ -151,7 +151,26 @@ func (s *Store) ListCategories() []CategorySummary {
 	return list
 }
 
-// ListTags returns all available tags with their usage count, sorted by count descending, then alphabetically.
+// ListByCategory returns all cheats in a given category (case-insensitive), sorted alphabetically.
+func (s *Store) ListByCategory(category string) []*Cheatsheet {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	catLower := strings.ToLower(category)
+	var list []*Cheatsheet
+	for _, cs := range s.data {
+		if strings.ToLower(cs.Category) == catLower {
+			list = append(list, cs)
+		}
+	}
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Topic < list[j].Topic
+	})
+
+	return list
+}
+
 func (s *Store) ListTags() []TagSummary {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
