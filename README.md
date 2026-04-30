@@ -89,6 +89,12 @@ curl "http://localhost:8080/~search?q=sql"
 curl "http://localhost:8080/~search?q=port+scan&format=json"
 curl "http://localhost:8080/~search?q=network&limit=5"
 
+# Get a random cheatsheet
+curl http://localhost:8080/~random
+curl http://localhost:8080/~random?cat=Web
+curl http://localhost:8080/~random?tag=linux
+curl "http://localhost:8080/~random?format=json"
+
 # Health check
 curl http://localhost:8080/healthz
 ```
@@ -295,6 +301,7 @@ When `AIRSENAL_ENABLE_MCP=true`, the HTTP server starts in a background goroutin
 | `search_cheatsheets`  | Full-text search across topics, tags, and content (`query: string`) |
 | `list_categories`     | List all available categories with their cheat counts         |
 | `list_by_category`    | List all cheatsheets within a specific category (`category: string`) |
+| `random_cheatsheet`   | Return a random cheatsheet, optionally filtered (`category?: string, tag?: string`) |
 
 ### Claude Desktop configuration
 
