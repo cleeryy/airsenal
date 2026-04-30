@@ -2,7 +2,7 @@ BIN     := bin/airsenal
 CMD     := ./cmd/airsenal
 IMAGE   := airsenal:latest
 
-.PHONY: build run test lint docker-build clean
+.PHONY: build run test lint docker-build clean update-cheats
 
 build:
 	go build -o $(BIN) $(CMD)
@@ -21,3 +21,6 @@ docker-build:
 
 clean:
 	rm -rf bin/
+
+update-cheats:
+	git submodule update --remote --merge
