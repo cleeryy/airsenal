@@ -3,6 +3,7 @@ package cheats
 // Cheatsheet holds metadata and content for a single topic.
 type Cheatsheet struct {
 	Topic       string   `json:"topic"`
+	Category    string   `json:"category,omitempty"`
 	Description string   `json:"description"`
 	Tags        []string `json:"tags"`
 	Content     string   `json:"content"`
