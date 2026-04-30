@@ -13,6 +13,7 @@ func Parse(topic, raw string) *Cheatsheet {
 	if strings.HasPrefix(raw, "---\n") {
 		body, meta := parseFrontmatter(raw)
 		cs.Description = meta["description"]
+		cs.Category = meta["category"]
 		if tagStr, ok := meta["tags"]; ok {
 			tagStr = strings.Trim(tagStr, "[]")
 			for _, t := range strings.Split(tagStr, ",") {

@@ -133,15 +133,20 @@ func (s *Store) ListCategories() []CategorySummary {
 	defer s.mu.RUnlock()
 
 	counts := make(map[string]int)
+	displays := make(map[string]string)
 	for _, cs := range s.data {
 		if cs.Category != "" {
-			counts[cs.Category]++
+			catLower := strings.ToLower(cs.Category)
+			counts[catLower]++
+			if displays[catLower] == "" {
+				displays[catLower] = cs.Category
+			}
 		}
 	}
 
 	var list []CategorySummary
-	for cat, count := range counts {
-		list = append(list, CategorySummary{Category: cat, Count: count})
+	for catLower, count := range counts {
+		list = append(list, CategorySummary{Category: displays[catLower], Count: count})
 	}
 
 	sort.Slice(list, func(i, j int) bool {

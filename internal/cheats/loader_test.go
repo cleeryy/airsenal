@@ -3,6 +3,7 @@ package cheats
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -123,6 +124,49 @@ func TestStore_MissingDir(t *testing.T) {
 	s := NewStore("/nonexistent/path")
 	if _, err := s.Load(); err == nil {
 		t.Fatal("expected error for missing directory")
+	}
+}
+
+func TestStore_ListCategoriesAndTags(t *testing.T) {
+	dir := t.TempDir()
+
+	writeFile(t, dir, "a.md", "---\ncategory: Web\ntags: [http, web]\n---\n")
+	writeFile(t, dir, "b.md", "---\ncategory: web\ntags: [Web]\n---\n")
+	writeFile(t, dir, "c.md", "---\ncategory: Scan\ntags: [scan, web]\n---\n")
+
+	s := NewStore(dir)
+	_, _ = s.Load()
+
+	cats := s.ListCategories()
+	if len(cats) != 2 {
+		t.Fatalf("expected 2 categories, got %d", len(cats))
+	}
+	if cats[0].Category != "Scan" || cats[0].Count != 1 {
+		t.Errorf("expected Scan:1, got %s:%d", cats[0].Category, cats[0].Count)
+	}
+	if strings.ToLower(cats[1].Category) != "web" || cats[1].Count != 2 {
+		t.Errorf("expected Web:2, got %s:%d", cats[1].Category, cats[1].Count)
+	}
+
+	webCheats := s.ListByCategory("web")
+	if len(webCheats) != 2 {
+		t.Fatalf("expected 2 web cheats, got %d", len(webCheats))
+	}
+	if webCheats[0].Topic != "a" || webCheats[1].Topic != "b" {
+		t.Errorf("expected a, b, got %s, %s", webCheats[0].Topic, webCheats[1].Topic)
+	}
+
+	tags := s.ListTags()
+	if len(tags) != 3 {
+		t.Fatalf("expected 3 tags, got %d", len(tags))
+	}
+	if tags[0].Tag != "web" || tags[0].Count != 3 {
+		t.Errorf("expected web:3, got %s:%d", tags[0].Tag, tags[0].Count)
+	}
+
+	webTagCheats := s.ListByTag("web")
+	if len(webTagCheats) != 3 {
+		t.Fatalf("expected 3 web tag cheats, got %d", len(webTagCheats))
 	}
 }
 
