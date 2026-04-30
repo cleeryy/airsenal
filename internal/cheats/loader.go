@@ -151,16 +151,46 @@ func (s *Store) ListCategories() []CategorySummary {
 	return list
 }
 
-// ListByCategory returns all cheats in a given category (case-insensitive), sorted alphabetically.
-func (s *Store) ListByCategory(category string) []*Cheatsheet {
+// ListTags returns all available tags with their usage count, sorted by count descending, then alphabetically.
+func (s *Store) ListTags() []TagSummary {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	catLower := strings.ToLower(category)
+	counts := make(map[string]int)
+	for _, cs := range s.data {
+		for _, tag := range cs.Tags {
+			counts[strings.ToLower(tag)]++
+		}
+	}
+
+	var list []TagSummary
+	for tag, count := range counts {
+		list = append(list, TagSummary{Tag: tag, Count: count})
+	}
+
+	sort.Slice(list, func(i, j int) bool {
+		if list[i].Count != list[j].Count {
+			return list[i].Count > list[j].Count
+		}
+		return list[i].Tag < list[j].Tag
+	})
+
+	return list
+}
+
+// ListByTag returns all cheats that have the given tag (case-insensitive), sorted alphabetically.
+func (s *Store) ListByTag(tag string) []*Cheatsheet {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	tagLower := strings.ToLower(tag)
 	var list []*Cheatsheet
 	for _, cs := range s.data {
-		if strings.ToLower(cs.Category) == catLower {
-			list = append(list, cs)
+		for _, t := range cs.Tags {
+			if strings.ToLower(t) == tagLower {
+				list = append(list, cs)
+				break
+			}
 		}
 	}
 
