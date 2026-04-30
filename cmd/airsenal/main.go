@@ -22,9 +22,17 @@ func main() {
 	cfg := config.Load()
 
 	store := cheats.NewStore(cfg.CheatsDir)
-	if err := store.Load(); err != nil {
+	nativeCount, err := store.Load()
+	if err != nil {
 		log.Printf("warning: %v", err)
 	}
+
+	arsenalCount, err := store.LoadArsenal(cfg.ArsenalCheatsDir)
+	if err != nil {
+		log.Printf("warning: arsenal: %v", err)
+	}
+
+	log.Printf("airsenal v%s — %d native cheats, %d arsenal cheats loaded (credit: Orange-Cyberdefense/arsenal)", version, nativeCount, arsenalCount)
 
 	if cfg.EnableMCP {
 		// Start HTTP server in background so both interfaces are available.
