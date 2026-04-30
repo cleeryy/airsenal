@@ -15,7 +15,7 @@ import (
 func newTestStore(t *testing.T) *cheats.Store {
 	t.Helper()
 	dir := t.TempDir()
-	content := "---\ndescription: Port scanner\ntags: [network]\n---\n\n## Usage\nnmap <target>\n"
+	content := "---\ndescription: Port scanner\ncategory: Scan\ntags: [network]\n---\n\n## Usage\nnmap <target>\n"
 	if err := os.WriteFile(filepath.Join(dir, "nmap.md"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -261,6 +261,103 @@ func TestGetTopic_nonTerminalNoANSI(t *testing.T) {
 	body := rec.Body.String()
 	if strings.Contains(body, "\x1b[33m") {
 		t.Fatalf("browser UA must not receive ANSI section-header codes: %q", body)
+	}
+}
+
+func TestListCategories_plainText(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~categories", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Available categories (1)") {
+		t.Fatalf("expected 1 category, got: %s", body)
+	}
+	if !strings.Contains(body, "Scan") {
+		t.Fatalf("expected Scan in list, got: %s", body)
+	}
+}
+
+func TestListCategories_JSON(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~categories?format=json", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	var list []map[string]interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+		t.Fatalf("JSON decode: %v — body: %s", err, rec.Body.String())
+	}
+	if len(list) != 1 || list[0]["category"] != "Scan" {
+		t.Fatalf("expected 1 entry for Scan, got %v", list)
+	}
+}
+
+func TestListByCategory_found(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~cat/scan", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "nmap") {
+		t.Fatalf("unexpected body: %s", rec.Body.String())
+	}
+}
+
+func TestListByCategory_notFound(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~cat/doesnotexist", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status: got %d, want 404", rec.Code)
+	}
+}
+
+func TestListTags_plainText(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~tags", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Available tags (1)") {
+		t.Fatalf("expected 1 tag, got: %s", body)
+	}
+	if !strings.Contains(body, "network") {
+		t.Fatalf("expected network in list, got: %s", body)
+	}
+}
+
+func TestListByTag_found(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~tag/network", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "nmap") {
+		t.Fatalf("unexpected body: %s", rec.Body.String())
+	}
+}
+
+func TestListByTag_notFound(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/~tag/doesnotexist", nil)
+	NewRouter(newTestStore(t)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status: got %d, want 404", rec.Code)
 	}
 }
 
