@@ -14,7 +14,7 @@ func TestStore_LoadAndGet(t *testing.T) {
 	writeFile(t, dir, "ignored.go", "package main") // must be ignored
 
 	s := NewStore(dir)
-	if err := s.Load(); err != nil {
+	if _, err := s.Load(); err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 
@@ -43,7 +43,7 @@ func TestStore_List(t *testing.T) {
 	writeFile(t, dir, "b.md", "B")
 
 	s := NewStore(dir)
-	_ = s.Load()
+	_, _ = s.Load()
 	if len(s.List()) != 2 {
 		t.Fatalf("expected 2 entries, got %d", len(s.List()))
 	}
@@ -57,7 +57,7 @@ func TestStore_SearchRanked_ranking(t *testing.T) {
 	writeFile(t, dir, "ssh.md", "---\ndescription: Remote login\ntags: [remote]\n---\nssh scan example")
 
 	s := NewStore(dir)
-	_ = s.Load()
+	_, _ = s.Load()
 
 	results := s.SearchRanked("scan", 10)
 	if len(results) != 3 {
@@ -84,7 +84,7 @@ func TestStore_SearchRanked_topicPriority(t *testing.T) {
 	writeFile(t, dir, "curl.md", "---\ndescription: nmap-like tool\ntags: [http]\n---\ncurl usage")
 
 	s := NewStore(dir)
-	_ = s.Load()
+	_, _ = s.Load()
 
 	results := s.SearchRanked("nmap", 10)
 	if len(results) != 2 {
@@ -102,7 +102,7 @@ func TestStore_SearchRanked_limit(t *testing.T) {
 	writeFile(t, dir, "c.md", "---\ntags: [test]\n---\nfoo")
 
 	s := NewStore(dir)
-	_ = s.Load()
+	_, _ = s.Load()
 
 	results := s.SearchRanked("test", 2)
 	if len(results) != 2 {
@@ -112,7 +112,7 @@ func TestStore_SearchRanked_limit(t *testing.T) {
 
 func TestStore_SearchRanked_emptySlice(t *testing.T) {
 	s := NewStore(t.TempDir())
-	_ = s.Load()
+	_, _ = s.Load()
 	results := s.SearchRanked("anything", 20)
 	if results == nil {
 		t.Fatal("expected non-nil empty slice, got nil")
@@ -121,7 +121,7 @@ func TestStore_SearchRanked_emptySlice(t *testing.T) {
 
 func TestStore_MissingDir(t *testing.T) {
 	s := NewStore("/nonexistent/path")
-	if err := s.Load(); err == nil {
+	if _, err := s.Load(); err == nil {
 		t.Fatal("expected error for missing directory")
 	}
 }

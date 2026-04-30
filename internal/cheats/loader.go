@@ -21,15 +21,15 @@ func NewStore(dir string) *Store {
 	return &Store{dir: dir, data: make(map[string]*Cheatsheet)}
 }
 
-// Load reads all .md and .txt files from the configured directory into memory.
-func (s *Store) Load() error {
+func (s *Store) Load() (int, error) {
 	entries, err := os.ReadDir(s.dir)
 	if err != nil {
-		return fmt.Errorf("reading cheats dir %q: %w", s.dir, err)
+		return 0, fmt.Errorf("reading cheats dir %q: %w", s.dir, err)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.data = make(map[string]*Cheatsheet)
+	count := 0
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
@@ -44,8 +44,68 @@ func (s *Store) Load() error {
 			continue
 		}
 		s.data[topic] = Parse(topic, string(raw))
+		count++
 	}
-	return nil
+	return count, nil
+}
+
+func (s *Store) LoadArsenal(arsenalDir string) (int, error) {
+	if arsenalDir == "" {
+		return 0, nil
+	}
+
+	info, err := os.Stat(arsenalDir)
+	if err != nil || !info.IsDir() {
+		return 0, nil
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	count := 0
+	err = filepath.WalkDir(arsenalDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			if strings.HasPrefix(d.Name(), ".") && d.Name() != "." {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		if filepath.Ext(path) != ".md" {
+			return nil
+		}
+
+		rel, err := filepath.Rel(arsenalDir, path)
+		if err != nil {
+			return nil
+		}
+		category := filepath.Dir(rel)
+		if category == "." {
+			category = ""
+		}
+
+		topic := strings.TrimSuffix(filepath.Base(path), ".md")
+		topic = strings.ToLower(topic)
+
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+
+		cs := ParseArsenal(topic, category, string(raw))
+
+		if _, exists := s.data[topic]; !exists {
+			s.data[topic] = cs
+			count++
+		}
+
+		return nil
+	})
+
+	return count, err
 }
 
 // Get returns the cheatsheet for a topic (exact match, case-sensitive key).

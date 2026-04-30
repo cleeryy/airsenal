@@ -20,7 +20,7 @@ func newTestStore(t *testing.T) *cheats.Store {
 		t.Fatal(err)
 	}
 	s := cheats.NewStore(dir)
-	if err := s.Load(); err != nil {
+	if _, err := s.Load(); err != nil {
 		t.Fatal(err)
 	}
 	return s
