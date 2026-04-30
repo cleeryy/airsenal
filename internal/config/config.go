@@ -7,17 +7,19 @@ import (
 
 // Config holds runtime configuration sourced from environment variables.
 type Config struct {
-	Port      string
-	CheatsDir string
-	EnableMCP bool
+	Port             string
+	CheatsDir        string
+	ArsenalCheatsDir string
+	EnableMCP        bool
 }
 
 // Load returns configuration populated from environment variables with sensible defaults.
 func Load() *Config {
 	return &Config{
-		Port:      envOr("AIRSENAL_PORT", "8080"),
-		CheatsDir: envOr("AIRSENAL_CHEATS_DIR", "./cheats"),
-		EnableMCP: envBool("AIRSENAL_ENABLE_MCP", false),
+		Port:             envOr("AIRSENAL_PORT", "8080"),
+		CheatsDir:        envOr("AIRSENAL_CHEATS_DIR", "./cheats"),
+		ArsenalCheatsDir: envOr("ARSENAL_CHEATS_DIR", ""),
+		EnableMCP:        envBool("AIRSENAL_ENABLE_MCP", false),
 	}
 }
 
