@@ -204,9 +204,30 @@ All configuration is via environment variables:
 |-----------------------|------------|------------------------------------------------|
 | `AIRSENAL_PORT`       | `8080`     | HTTP port to listen on                         |
 | `AIRSENAL_CHEATS_DIR` | `./cheats` | Directory containing cheatsheet files          |
+| `ARSENAL_CHEATS_DIR`  | `""`       | Directory containing Arsenal cheatsheets       |
 | `AIRSENAL_ENABLE_MCP` | `false`    | When `true`, also run the MCP stdio server     |
 
 ---
+
+## Arsenal cheats
+
+`airsenal` natively supports parsing the massive cheatsheet library from the upstream [Orange-Cyberdefense/arsenal](https://github.com/Orange-Cyberdefense/arsenal) project.
+
+1. Clone `airsenal` with its submodules:
+   ```bash
+   git clone --recursive https://github.com/cleeryy/airsenal
+   ```
+   *(If you already cloned it without submodules, run: `git submodule update --init --recursive`)*
+2. Set the `ARSENAL_CHEATS_DIR` environment variable to point to the data directory:
+   ```bash
+   export ARSENAL_CHEATS_DIR="./arsenal/arsenal/data/cheats"
+   ```
+3. Start the server. You'll see a log line confirming the loaded arsenal topics.
+
+To pull the latest cheatsheets from the upstream repository, run:
+```bash
+make update-cheats
+```
 
 ## Adding custom cheatsheets
 
